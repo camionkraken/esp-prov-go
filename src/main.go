@@ -11,7 +11,12 @@ import (
 // the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
 
 func main() {
-	provisioner := softap.NewSoftapProvisioner("", security.Security0{})
+	provisioner, err := softap.NewSoftapProvisioner("", &security.Security0{})
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	resp, err := provisioner.GetProtoVersion()
 
@@ -28,4 +33,13 @@ func main() {
 	}
 
 	fmt.Println(string(j))
+
+	err = provisioner.EstablishSession()
+
+	if err == nil {
+		fmt.Println("Session established successfully")
+	} else {
+		fmt.Println(err)
+		return
+	}
 }

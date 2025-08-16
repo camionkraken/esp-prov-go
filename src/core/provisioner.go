@@ -41,3 +41,23 @@ func (provisioner *Provisioner) GetProtoVersion() (ProtoVersion, error) {
 
 	return protoVer, nil
 }
+
+func (provisioner *Provisioner) EstablishSession() error {
+	var response []byte
+
+	for {
+		request, err := provisioner.security.SecuritySession(response)
+		if err != nil {
+			return err
+		}
+
+		if request == nil {
+			return nil
+		}
+
+		response, err = provisioner.transmitter.Send(SessionEndpoint, request)
+		if err != nil {
+			return err
+		}
+	}
+}
