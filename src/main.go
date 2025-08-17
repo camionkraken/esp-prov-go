@@ -42,4 +42,18 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+
+	wiFis, err := provisioner.WiFiScan()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	for _, wiFi := range wiFis {
+		wiFiJson, err := json.MarshalIndent(wiFi, "", "  ")
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		fmt.Println(string(wiFiJson))
+	}
 }

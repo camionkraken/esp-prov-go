@@ -65,11 +65,9 @@ func (s *Security0) setup0Response(responseData []byte) error {
 }
 
 func (s *Security0) DecryptData(data []byte) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	return data, nil
 }
 
-func (s *Security0) EncryptData(bytes []byte) {
-	//TODO implement me
-	panic("implement me")
+func (s *Security0) EncryptData(data []byte) ([]byte, error) {
+	return data, nil
 }

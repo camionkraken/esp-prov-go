@@ -61,3 +61,74 @@ func (provisioner *Provisioner) EstablishSession() error {
 		}
 	}
 }
+
+func (provisioner *Provisioner) WiFiScan() ([]WiFiFromScan, error) {
+	msg, err := StartScanRequest(provisioner.security, true, false, 5, 120)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := provisioner.transmitter.Send(ScanEndpoint, msg)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = StartScanResponse(provisioner.security, resp)
+	if err != nil {
+		return nil, err
+	}
+
+	msg, err = ScanStatusRequest(provisioner.security)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = provisioner.transmitter.Send(ScanEndpoint, msg)
+	if err != nil {
+		return nil, err
+	}
+
+	scanStatusResult, err := ScanStatusResponse(provisioner.security, resp)
+	if err != nil {
+		return nil, err
+	}
+
+	wiFis := make([]WiFiFromScan, 0)
+
+	if scanStatusResult.Count != 0 {
+		var index uint32 = 0
+		remaining := scanStatusResult.Count
+
+		for remaining > 0 {
+			count := remaining
+			if remaining > 100 {
+				count = 100
+			}
+
+			msg, err = ScanResultRequest(provisioner.security, index, count)
+			if err != nil {
+				return nil, err
+			}
+
+			resp, err = provisioner.transmitter.Send(ScanEndpoint, msg)
+			if err != nil {
+				return nil, err
+			}
+
+			scanResultResponse, err := ScanResultResponse(provisioner.security, resp)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, wiFi := range scanResultResponse {
+				wiFis = append(wiFis, wiFi)
+			}
+
+			remaining -= count
+			index += count
+		}
+	}
+
+	return wiFis, nil
+}
