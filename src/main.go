@@ -56,4 +56,11 @@ func main() {
 		}
 		fmt.Println(string(wiFiJson))
 	}
+
+	wiFiConnection, err := provisioner.ConnectToWiFiNetwork("Wind3 HUB-D90605", "2ronwlgs6bf2mpp6")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(wiFiConnection)
 }

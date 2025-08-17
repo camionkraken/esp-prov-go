@@ -132,3 +132,37 @@ func (provisioner *Provisioner) WiFiScan() ([]WiFiFromScan, error) {
 
 	return wiFis, nil
 }
+
+func (provisioner *Provisioner) ConnectToWiFiNetwork(ssid string, passphrase string) (WiFiConnectionResult, error) {
+	msg, err := SetConfigRequest(provisioner.security, ssid, passphrase)
+	if err != nil {
+		return WiFiSetConfigurationFailed, err
+	}
+
+	resp, err := provisioner.transmitter.Send(ProvConfigEndpoint, msg)
+	if err != nil {
+		return WiFiSetConfigurationFailed, err
+	}
+
+	err = SetConfigResponse(provisioner.security, resp)
+	if err != nil {
+		return WiFiSetConfigurationFailed, err
+	}
+
+	msg, err = ApplyConfigRequest(provisioner.security)
+	if err != nil {
+		return WiFiApplyConfigurationFailed, err
+	}
+
+	resp, err = provisioner.transmitter.Send(ProvConfigEndpoint, msg)
+	if err != nil {
+		return WiFiApplyConfigurationFailed, err
+	}
+
+	if err = ApplyConfigResponse(provisioner.security, resp); err != nil {
+		return WiFiApplyConfigurationFailed, err
+	}
+
+	// Missing the connection check part
+	return WiFiConnected, nil
+}
