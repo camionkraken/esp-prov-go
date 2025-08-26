@@ -56,4 +56,11 @@ func main() {
 		}
 		fmt.Println(string(wiFiJson))
 	}
+
+	wiFiConnection, err := provisioner.ConnectToWiFiNetwork("ssid", "passphrase")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(wiFiConnection)
 }

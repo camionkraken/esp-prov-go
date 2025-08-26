@@ -3,6 +3,8 @@ package core
 import (
 	"encoding/json"
 	"esp-prov-go/core/security"
+	"fmt"
+	"time"
 )
 
 type Provisioner struct {
@@ -60,6 +62,25 @@ func (provisioner *Provisioner) EstablishSession() error {
 			return err
 		}
 	}
+}
+
+func (provisioner *Provisioner) GetWiFiStatus() (ProvStatusResult, error) {
+	msg, err := GetStatusRequest(provisioner.security)
+	if err != nil {
+		return ProvStatusUnknown, err
+	}
+
+	response, err := provisioner.transmitter.Send(ProvConfigEndpoint, msg)
+	if err != nil {
+		return ProvStatusUnknown, err
+	}
+
+	status, err := GetStatusResponse(provisioner.security, response)
+	if err != nil {
+		return ProvStatusUnknown, err
+	}
+
+	return status, nil
 }
 
 func (provisioner *Provisioner) WiFiScan() ([]WiFiFromScan, error) {
@@ -131,4 +152,61 @@ func (provisioner *Provisioner) WiFiScan() ([]WiFiFromScan, error) {
 	}
 
 	return wiFis, nil
+}
+
+func (provisioner *Provisioner) ConnectToWiFiNetwork(ssid string, passphrase string) (WiFiConnectionResult, error) {
+	msg, err := SetConfigRequest(provisioner.security, ssid, passphrase)
+	if err != nil {
+		return WiFiSetConfigurationFailed, err
+	}
+
+	resp, err := provisioner.transmitter.Send(ProvConfigEndpoint, msg)
+	if err != nil {
+		return WiFiSetConfigurationFailed, err
+	}
+
+	err = SetConfigResponse(provisioner.security, resp)
+	if err != nil {
+		return WiFiSetConfigurationFailed, err
+	}
+
+	msg, err = ApplyConfigRequest(provisioner.security)
+	if err != nil {
+		return WiFiApplyConfigurationFailed, err
+	}
+
+	resp, err = provisioner.transmitter.Send(ProvConfigEndpoint, msg)
+	if err != nil {
+		return WiFiApplyConfigurationFailed, err
+	}
+
+	if err = ApplyConfigResponse(provisioner.security, resp); err != nil {
+		return WiFiApplyConfigurationFailed, err
+	}
+
+	for i := range ConnectionCheckRetries {
+		status, err := provisioner.GetWiFiStatus()
+		if err != nil {
+			fmt.Printf("Error getting WiFi status: %s. Try %d\n", err, i)
+			continue
+		}
+
+		switch status {
+		case ProvStatusConnecting:
+			time.Sleep(ConnectionCheckIntervalMs * time.Millisecond)
+			continue
+		case ProvStatusConnected:
+			return WiFiConnected, nil
+		case ProvStatusNetworkNotFound:
+			return WiFiNetworkNotFound, nil
+		case ProvStatusAuthError:
+			return WiFiAuthError, nil
+		case ProvStatusUnknown:
+		case ProvStatusFailed:
+		case ProvStatusDisconnected:
+			return WiFiFailed, nil
+		}
+	}
+
+	return WiFiRetriesExceeded, nil
 }
